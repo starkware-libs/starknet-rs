@@ -1927,6 +1927,23 @@ pub struct SimulatedTransaction {
     pub fee_estimation: FeeEstimate,
 }
 
+/// Flags that indicate how to enrich the storage response.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StorageResponseFlag {
+    #[serde(rename = "INCLUDE_LAST_UPDATE_BLOCK")]
+    IncludeLastUpdateBlock,
+}
+
+/// Storage value with additional metadata, returned when response flags are specified.
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "no_unknown_fields", serde(deny_unknown_fields))]
+pub struct StorageResult {
+    #[serde_as(as = "UfeHex")]
+    pub value: Felt,
+    pub last_update_block: u64,
+}
+
 /// Flags that indicate how to simulate a given transaction. By default, the sequencer behavior is
 /// replicated locally (enough funds are expected to be in the account, and fee will be deducted
 /// from the balance before the simulation of the next transaction). To skip the fee charge, use the
@@ -2583,6 +2600,8 @@ pub struct GetStorageAtRequest {
     pub key: Felt,
     /// The hash of the requested block, or number (height) of the requested block, or a block tag
     pub block_id: BlockId,
+    /// Optional flags to enrich the response
+    pub response_flags: Option<Vec<StorageResponseFlag>>,
 }
 
 /// Reference version of [GetStorageAtRequest].
@@ -2591,6 +2610,7 @@ pub struct GetStorageAtRequestRef<'a> {
     pub contract_address: &'a Felt,
     pub key: &'a Felt,
     pub block_id: &'a BlockId,
+    pub response_flags: Option<&'a [StorageResponseFlag]>,
 }
 
 /// Request for method starknet_getStorageProof
@@ -7798,6 +7818,8 @@ impl Serialize for GetStorageAtRequest {
             contract_address: Field0<'a>,
             key: Field1<'a>,
             block_id: Field2<'a>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            response_flags: Option<&'a [StorageResponseFlag]>,
         }
 
         #[serde_as]
@@ -7831,6 +7853,7 @@ impl Serialize for GetStorageAtRequest {
                 block_id: Field2 {
                     value: &self.block_id,
                 },
+                response_flags: self.response_flags.as_deref(),
             },
             serializer,
         )
@@ -7844,6 +7867,8 @@ impl Serialize for GetStorageAtRequestRef<'_> {
             contract_address: Field0<'a>,
             key: Field1<'a>,
             block_id: Field2<'a>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            response_flags: Option<&'a [StorageResponseFlag]>,
         }
 
         #[serde_as]
@@ -7877,6 +7902,7 @@ impl Serialize for GetStorageAtRequestRef<'_> {
                 block_id: Field2 {
                     value: self.block_id,
                 },
+                response_flags: self.response_flags,
             },
             serializer,
         )
@@ -7890,6 +7916,8 @@ impl<'de> Deserialize<'de> for GetStorageAtRequest {
             contract_address: Field0,
             key: Field1,
             block_id: Field2,
+            #[serde(default)]
+            response_flags: Option<Vec<StorageResponseFlag>>,
         }
 
         #[serde_as]
@@ -7940,12 +7968,14 @@ impl<'de> Deserialize<'de> for GetStorageAtRequest {
                 contract_address: field0.value,
                 key: field1.value,
                 block_id: field2.value,
+                response_flags: None,
             })
         } else if let Ok(object) = AsObject::deserialize(&temp) {
             Ok(Self {
                 contract_address: object.contract_address.value,
                 key: object.key.value,
                 block_id: object.block_id.value,
+                response_flags: object.response_flags,
             })
         } else {
             Err(serde::de::Error::custom("invalid sequence length"))
