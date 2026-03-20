@@ -48,7 +48,7 @@ pub use codegen::{
     ResourceBounds, ResourceBoundsMapping, ResourcePrice, ResultPageRequest, RevertedInvocation,
     SequencerTransactionStatus, SierraEntryPoint, SimulatedTransaction, SimulationFlag,
     SimulationFlagForEstimateFee, StarknetError, StateDiff, StateUpdate, StorageEntry,
-    StorageProof, SubscriptionId, SyncStatus, TransactionExecutionErrorData,
+    StorageProof, StorageResponseFlag, StorageResult, SubscriptionId, SyncStatus, TransactionExecutionErrorData,
     TransactionExecutionStatus, TransactionFinalityStatus, TransactionReceiptWithBlockInfo,
     TransactionTraceWithHash, TransactionWithL2Status, TransactionWithReceipt,
 };
@@ -1058,5 +1058,101 @@ mod tests {
             },
             serde_json::from_str(as_array).unwrap(),
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_storage_response_flag_serde() {
+        let flag = StorageResponseFlag::IncludeLastUpdateBlock;
+        let json = serde_json::to_string(&flag).unwrap();
+        assert_eq!(json, r#""INCLUDE_LAST_UPDATE_BLOCK""#);
+        assert_eq!(
+            serde_json::from_str::<StorageResponseFlag>(&json).unwrap(),
+            flag
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_storage_result_deser() {
+        let json = r#"{"value":"0x1e240","last_update_block":42}"#;
+        let result = serde_json::from_str::<StorageResult>(json).unwrap();
+        assert_eq!(result.value, Felt::from_dec_str("123456").unwrap());
+        assert_eq!(result.last_update_block, 42);
+
+        // Round-trip
+        assert_eq!(
+            serde_json::from_str::<StorageResult>(
+                &serde_json::to_string(&result).unwrap()
+            )
+            .unwrap(),
+            result
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_parse_get_storage_at_request_without_flags() {
+        let as_object =
+            r#"{"contract_address":"0x123","key":"0x456","block_id":{"block_number":200}}"#;
+        let as_array = r#"["0x123","0x456",{"block_number":200}]"#;
+
+        let expected = GetStorageAtRequest {
+            contract_address: Felt::from_hex_unchecked("0x123"),
+            key: Felt::from_hex_unchecked("0x456"),
+            block_id: BlockId::Number(200),
+            response_flags: None,
+        };
+
+        assert_eq!(
+            expected,
+            serde_json::from_str(as_object).unwrap(),
+        );
+        assert_eq!(
+            expected,
+            serde_json::from_str(as_array).unwrap(),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_parse_get_storage_at_request_with_flags() {
+        let json = r#"{"contract_address":"0x123","key":"0x456","block_id":{"block_number":200},"response_flags":["INCLUDE_LAST_UPDATE_BLOCK"]}"#;
+
+        assert_eq!(
+            GetStorageAtRequest {
+                contract_address: Felt::from_hex_unchecked("0x123"),
+                key: Felt::from_hex_unchecked("0x456"),
+                block_id: BlockId::Number(200),
+                response_flags: Some(vec![StorageResponseFlag::IncludeLastUpdateBlock]),
+            },
+            serde_json::from_str(json).unwrap(),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_get_storage_at_request_serialization_skips_none_flags() {
+        let req = GetStorageAtRequest {
+            contract_address: Felt::from_hex_unchecked("0x123"),
+            key: Felt::from_hex_unchecked("0x456"),
+            block_id: BlockId::Number(200),
+            response_flags: None,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(!json.contains("response_flags"));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    fn test_get_storage_at_request_serialization_includes_flags() {
+        let req = GetStorageAtRequest {
+            contract_address: Felt::from_hex_unchecked("0x123"),
+            key: Felt::from_hex_unchecked("0x456"),
+            block_id: BlockId::Number(200),
+            response_flags: Some(vec![StorageResponseFlag::IncludeLastUpdateBlock]),
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert!(json.contains(r#""response_flags":["INCLUDE_LAST_UPDATE_BLOCK"]"#));
     }
 }
