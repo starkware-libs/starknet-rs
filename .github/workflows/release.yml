@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
         with:
           fetch-depth: 0
 
@@ -54,7 +54,7 @@ jobs:
 
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
 
       - name: "Check against Cargo.toml"
         run: |
@@ -83,10 +83,10 @@ jobs:
 
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
 
       - name: "Setup stable toolchain"
-        uses: "actions-rs/toolchain@v1"
+        uses: "actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af" # v1
         with:
           toolchain: "stable"
           profile: "minimal"
@@ -108,7 +108,7 @@ jobs:
 
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
 
       - name: "Login to crates.io"
         run: |

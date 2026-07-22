@@ -12,10 +12,10 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
 
       - name: "Use Rust cache"
-        uses: "Swatinem/rust-cache@v2"
+        uses: "Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32" # v2
         with:
           cache-on-failure: true
 
@@ -69,10 +69,10 @@ jobs:
           - "nightly"
     steps:
       - name: "Checkout source code"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26" # v3
 
       - name: "Setup toolchain"
-        uses: "actions-rs/toolchain@v1"
+        uses: "actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af" # v1
         with:
           toolchain: "${{ matrix.toolchain }}"
           components: "clippy"
